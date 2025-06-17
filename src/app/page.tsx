@@ -142,8 +142,8 @@ export default function Home() {
 
         // Atualizar URL do QR code
         const qrData: any = await getCurrentQrUrl.refetch();
-        if (qrData.data && qrData.data.urlString !== "0x") {
-          setCurrentUrl(qrData.data.urlString);
+        if (qrData.data && qrData.data[1] !== "0x") {
+          setCurrentUrl(qrData.data[1]);
         }
 
         // Atualizar contagem regressiva
@@ -157,7 +157,7 @@ export default function Home() {
     };
 
     fetchAuctionData();
-    const interval = setInterval(fetchAuctionData, 15000); // Atualizar a cada 15 segundos
+    const interval = setInterval(fetchAuctionData, 1500); // Atualizar a cada 15 segundos
 
     return () => clearInterval(interval);
   }, []);
@@ -221,7 +221,7 @@ export default function Home() {
         const bidder: any = await getAuctionHighestBidder.refetch();
         if (bidder.data) setHighestBidder(bidder.data);
         const qrData: any = await getCurrentQrUrl.refetch();
-        if (qrData.data) setCurrentUrl(qrData.data.urlString);
+        if (qrData.data) setCurrentUrl(qrData.data[1]);
       } else {
         alert("Bid failed");
       }
@@ -260,7 +260,7 @@ export default function Home() {
           <div className="relative h-36 w-36">
             <Image src="/coin.png" fill alt="coin" className="object-contain" />
             <div className="absolute inset-0 flex flex-col items-center justify-center text-[#D38D17] font-bold">
-              <span className="text-3xl">{highestBid || 0}</span>
+              <span className="text-3xl">{highestBid / 1000000 || 0}</span>
               <span className="text-xl">USDC</span>
             </div>
           </div>
@@ -274,7 +274,7 @@ export default function Home() {
               className="object-contain"
             />
             {currentUrl && (
-              <div className="absolute inset-0 flex items-center justify-center p-3">
+              <div className="absolute inset-0 flex items-center justify-center mb-6">
                 <QRCode value={currentUrl} size={110} />
               </div>
             )}
