@@ -217,7 +217,7 @@ export default function Home() {
         const data = await writeContractAsync({
           address: TOKEN_CONTRACT_ADDRESS,
           abi: USDC_CONTRACT_ABI,
-          functionName: "approve",
+          functionName: "increaseAllowance",
           args: [contractAddress, parseEther(String(balanceOf))],
         });
 
