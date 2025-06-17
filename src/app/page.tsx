@@ -18,69 +18,68 @@ export default function Home() {
   const [reservePrice, setReservePrice] = useState(0);
   const [minBidIncrement, setMinBidIncrement] = useState(0);
 
-  const config = useConfig()
+  const config = useConfig();
 
-  const contractAddress = "0x185de145BC53057CF0730EF8a53b7bEb7677Fa06" 
-  
+  const contractAddress = "0x185de145BC53057CF0730EF8a53b7bEb7677Fa06";
+
   const contractABI = [
     {
-      "inputs": [
-        {"internalType": "uint256", "name": "_tokenId", "type": "uint256"},
-        {"internalType": "string", "name": "_urlString", "type": "string"},
-        {"internalType": "string", "name": "_name", "type": "string"},
-        {"internalType": "uint256", "name": "_bidAmount", "type": "uint256"},
-
+      inputs: [
+        { internalType: "uint256", name: "_tokenId", type: "uint256" },
+        { internalType: "string", name: "_urlString", type: "string" },
+        { internalType: "string", name: "_name", type: "string" },
+        { internalType: "uint256", name: "_bidAmount", type: "uint256" },
       ],
-      "name": "createBid",
-      "outputs": [],
-      "stateMutability": "nonpayable",
-      "type": "function"
+      name: "createBid",
+      outputs: [],
+      stateMutability: "nonpayable",
+      type: "function",
     },
     {
-      "inputs": [],
-      "name": "auctionHighestBid",
-      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-      "stateMutability": "view",
-      "type": "function"
+      inputs: [],
+      name: "auctionHighestBid",
+      outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+      stateMutability: "view",
+      type: "function",
     },
     {
-      "inputs": [],
-      "name": "auctionHighestBidder",
-      "outputs": [{"internalType": "address", "name": "", "type": "address"}],
-      "stateMutability": "view",
-      "type": "function"
+      inputs: [],
+      name: "auctionHighestBidder",
+      outputs: [{ internalType: "address", name: "", type: "address" }],
+      stateMutability: "view",
+      type: "function",
     },
     {
-      "inputs": [],
-      "name": "reservePrice",
-      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
-      "stateMutability": "view",
-      "type": "function"
+      inputs: [],
+      name: "reservePrice",
+      outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+      stateMutability: "view",
+      type: "function",
     },
     {
-      "inputs": [],
-      "name": "minBidIncrement",
-      "outputs": [{"internalType": "uint8", "name": "", "type": "uint8"}],
-      "stateMutability": "view",
-      "type": "function"
+      inputs: [],
+      name: "minBidIncrement",
+      outputs: [{ internalType: "uint8", name: "", type: "uint8" }],
+      stateMutability: "view",
+      type: "function",
     },
     {
-      "inputs": [],
-      "name": "auctionEndTime",
-      "outputs": [{"internalType": "uint40", "name": "", "type": "uint40"}],
-      "stateMutability": "view",
-      "type": "function"
+      inputs: [],
+      name: "auctionEndTime",
+      outputs: [{ internalType: "uint40", name: "", type: "uint40" }],
+      stateMutability: "view",
+      type: "function",
     },
     {
-      "inputs": [],
-      "name": "auctionQrMetadata",
-      "outputs": [
-        {"internalType": "uint256", "name": "validUntil", "type": "uint256"},
-        {"internalType": "string", "name": "urlString", "type": "string"}
+      inputs: [],
+      name: "auctionQrMetadata",
+      outputs: [
+        { internalType: "uint256", name: "validUntil", type: "uint256" },
+        { internalType: "string", name: "urlString", type: "string" },
       ],
-      "stateMutability": "view",
-      "type": "function"
-    }
+      stateMutability: "view",
+      type: "function",
+    },
   ];
 
   const { writeContractAsync } = useWriteContract();
@@ -175,7 +174,11 @@ export default function Home() {
     const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
     const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
-    setTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+    setTimeLeft(
+      `${hours.toString().padStart(2, "0")}:${minutes
+        .toString()
+        .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`
+    );
   };
 
   // Função para enviar um lance
@@ -188,27 +191,36 @@ export default function Home() {
         return;
       }
 
+      // Converter para base 6 (USDC tem 6 decimais)
+      const bidAmountInBase6 = Math.floor(numericBid * 10 ** 6);
+
       // Se não há lance anterior, verificar se atende ao preço de reserva
-      if (highestBid === 0 && numericBid < reservePrice) {
-        alert(`Bid must be at least ${reservePrice} USDC (reserve price)`);
+      if (highestBid === 0 && bidAmountInBase6 < reservePrice) {
+        alert(
+          `Bid must be at least ${reservePrice / 10 ** 6} USDC (reserve price)`
+        );
         return;
       }
 
       // Se há lance anterior, verificar incremento mínimo
       if (highestBid > 0) {
-        const minBid = highestBid + (highestBid * minBidIncrement / 100);
-        if (numericBid < minBid) {
-          alert(`Bid must be at least ${minBid} USDC (${minBidIncrement}% increment)`);
+        const minBid = highestBid + (highestBid * minBidIncrement) / 100;
+        if (bidAmountInBase6 < minBid) {
+          alert(
+            `Bid must be at least ${
+              minBid / 10 ** 6
+            } USDC (${minBidIncrement}% increment)`
+          );
           return;
         }
       }
 
-      // Chamar a função do contrato
+      // Chamar a função do contrato com o valor em base 6
       const hash = await writeContractAsync({
         address: contractAddress,
         abi: contractABI,
         functionName: "createBid",
-        args: [1, url, name, numericBid], // Assumindo tokenId = 1
+        args: [1, url, name, bidAmountInBase6], // Valor convertido para base 6
       });
 
       // Esperar pela confirmação da transação
@@ -227,7 +239,9 @@ export default function Home() {
       }
     } catch (error) {
       console.error("Error placing bid:", error);
-      alert(`Bid failed: ${error instanceof Error ? error.message : String(error)}`);
+      alert(
+        `Bid failed: ${error instanceof Error ? error.message : String(error)}`
+      );
     }
   };
 
@@ -290,13 +304,24 @@ export default function Home() {
         <form onSubmit={handleSubmit} className="space-y-4 mt-5">
           <input
             type="number"
-            placeholder="USDC Bid Amount"
+            placeholder={
+              highestBid > 0
+                ? `Min bid: ${
+                    (highestBid + (highestBid * minBidIncrement) / 100) /
+                    10 ** 6
+                  } USDC`
+                : `Reserve price: ${reservePrice / 10 ** 6} USDC`
+            }
             value={bidAmount}
             onChange={(e) => setBidAmount(e.target.value)}
             className="w-full block border-2 border-[#BA700A] bg-[#D38D17] text-[#2C1100] placeholder-[#2C1100] font-bold py-3 px-2 rounded-full"
             required
-            min={highestBid > 0 ? highestBid + (highestBid * minBidIncrement / 100) : reservePrice}
-            step="any"
+            min={
+              highestBid > 0
+                ? (highestBid + (highestBid * minBidIncrement) / 100) / 10 ** 6
+                : reservePrice / 10 ** 6
+            }
+            step="0.000001"
           />
           <input
             type="text"
