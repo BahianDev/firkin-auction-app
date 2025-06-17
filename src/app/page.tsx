@@ -208,7 +208,7 @@ export default function Home() {
         address: contractAddress,
         abi: contractABI,
         functionName: "createBid",
-        args: [1, url, name], // Assumindo tokenId = 1
+        args: [1, url, name, numericBid], // Assumindo tokenId = 1
       });
 
       // Esperar pela confirmação da transação
