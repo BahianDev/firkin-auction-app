@@ -1,103 +1,325 @@
+"use client";
+
+import { ConnectButton } from "@rainbow-me/rainbowkit";
+import QRCode from "react-qr-code";
 import Image from "next/image";
+import { useState, useEffect } from "react";
+import { useWriteContract, useReadContract, useConfig } from "wagmi";
+import { waitForTransactionReceipt } from "@wagmi/core";
 
 export default function Home() {
-  return (
-    <div className="grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20 font-[family-name:var(--font-geist-sans)]">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="list-inside list-decimal text-sm/6 text-center sm:text-left font-[family-name:var(--font-geist-mono)]">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] px-1 py-0.5 rounded font-[family-name:var(--font-geist-mono)] font-semibold">
-              src/app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+  const [url, setUrl] = useState("");
+  const [currentUrl, setCurrentUrl] = useState("");
+  const [bidAmount, setBidAmount] = useState("");
+  const [name, setName] = useState("");
+  const [timeLeft, setTimeLeft] = useState("");
+  const [highestBid, setHighestBid] = useState(0);
+  const [highestBidder, setHighestBidder] = useState("");
+  const [reservePrice, setReservePrice] = useState(0);
+  const [minBidIncrement, setMinBidIncrement] = useState(0);
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
-          <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
-          </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
-          </a>
+  const config = useConfig()
+
+  const contractAddress = "0xC724C8230184E793500bC549CfF8188820b98835" 
+  
+  const contractABI = [
+    {
+      "inputs": [
+        {"internalType": "uint256", "name": "_tokenId", "type": "uint256"},
+        {"internalType": "string", "name": "_urlString", "type": "string"},
+        {"internalType": "string", "name": "_name", "type": "string"}
+      ],
+      "name": "createBid",
+      "outputs": [],
+      "stateMutability": "nonpayable",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "auctionHighestBid",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "auctionHighestBidder",
+      "outputs": [{"internalType": "address", "name": "", "type": "address"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "reservePrice",
+      "outputs": [{"internalType": "uint256", "name": "", "type": "uint256"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "minBidIncrement",
+      "outputs": [{"internalType": "uint8", "name": "", "type": "uint8"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "auctionEndTime",
+      "outputs": [{"internalType": "uint40", "name": "", "type": "uint40"}],
+      "stateMutability": "view",
+      "type": "function"
+    },
+    {
+      "inputs": [],
+      "name": "auctionQrMetadata",
+      "outputs": [
+        {"internalType": "uint256", "name": "validUntil", "type": "uint256"},
+        {"internalType": "string", "name": "urlString", "type": "string"}
+      ],
+      "stateMutability": "view",
+      "type": "function"
+    }
+  ];
+
+  const { writeContractAsync } = useWriteContract();
+
+  const getAuctionHighestBid = useReadContract({
+    address: contractAddress,
+    abi: contractABI,
+    functionName: "auctionHighestBid",
+  });
+
+  const getAuctionHighestBidder = useReadContract({
+    address: contractAddress,
+    abi: contractABI,
+    functionName: "auctionHighestBidder",
+  });
+
+  const getReservePrice = useReadContract({
+    address: contractAddress,
+    abi: contractABI,
+    functionName: "reservePrice",
+  });
+
+  const getMinBidIncrement = useReadContract({
+    address: contractAddress,
+    abi: contractABI,
+    functionName: "minBidIncrement",
+  });
+
+  const getAuctionEndTime = useReadContract({
+    address: contractAddress,
+    abi: contractABI,
+    functionName: "auctionEndTime",
+  });
+
+  const getCurrentQrUrl = useReadContract({
+    address: contractAddress,
+    abi: contractABI,
+    functionName: "auctionQrMetadata",
+  });
+
+  useEffect(() => {
+    const fetchAuctionData = async () => {
+      try {
+        // Atualizar maior lance
+        const bid = await getAuctionHighestBid.refetch();
+        if (bid.data) setHighestBid(Number(bid.data));
+
+        // Atualizar maior licitante
+        const bidder: any = await getAuctionHighestBidder.refetch();
+        if (bidder.data) setHighestBidder(bidder.data);
+
+        // Atualizar preço de reserva
+        const reserve = await getReservePrice.refetch();
+        if (reserve.data) setReservePrice(Number(reserve.data));
+
+        // Atualizar incremento mínimo
+        const increment = await getMinBidIncrement.refetch();
+        if (increment.data) setMinBidIncrement(Number(increment.data));
+
+        // Atualizar URL do QR code
+        const qrData: any = await getCurrentQrUrl.refetch();
+        if (qrData.data && qrData.data.urlString !== "0x") {
+          setCurrentUrl(qrData.data.urlString);
+        }
+
+        // Atualizar contagem regressiva
+        const endTime = await getAuctionEndTime.refetch();
+        if (endTime.data) {
+          updateCountdown(Number(endTime.data) * 1000);
+        }
+      } catch (error) {
+        console.error("Error fetching auction data:", error);
+      }
+    };
+
+    fetchAuctionData();
+    const interval = setInterval(fetchAuctionData, 15000); // Atualizar a cada 15 segundos
+
+    return () => clearInterval(interval);
+  }, []);
+
+  // Função para calcular e atualizar a contagem regressiva
+  const updateCountdown = (endTime: number) => {
+    const now = Date.now();
+    if (endTime <= now) {
+      setTimeLeft("Auction ended");
+      return;
+    }
+
+    const diff = endTime - now;
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+    setTimeLeft(`${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`);
+  };
+
+  // Função para enviar um lance
+  const createBid = async () => {
+    try {
+      // Verificar se o lance atende aos requisitos mínimos
+      const numericBid = parseFloat(bidAmount);
+      if (isNaN(numericBid) || numericBid <= 0) {
+        alert("Please enter a valid bid amount");
+        return;
+      }
+
+      // Se não há lance anterior, verificar se atende ao preço de reserva
+      if (highestBid === 0 && numericBid < reservePrice) {
+        alert(`Bid must be at least ${reservePrice} USDC (reserve price)`);
+        return;
+      }
+
+      // Se há lance anterior, verificar incremento mínimo
+      if (highestBid > 0) {
+        const minBid = highestBid + (highestBid * minBidIncrement / 100);
+        if (numericBid < minBid) {
+          alert(`Bid must be at least ${minBid} USDC (${minBidIncrement}% increment)`);
+          return;
+        }
+      }
+
+      // Chamar a função do contrato
+      const hash = await writeContractAsync({
+        address: contractAddress,
+        abi: contractABI,
+        functionName: "createBid",
+        args: [1, url, name], // Assumindo tokenId = 1
+      });
+
+      // Esperar pela confirmação da transação
+      const receipt = await waitForTransactionReceipt(config, { hash });
+      if (receipt.status === "success") {
+        alert("Bid placed successfully!");
+        // Atualizar os dados após o lance
+        const bid = await getAuctionHighestBid.refetch();
+        if (bid.data) setHighestBid(Number(bid.data));
+        const bidder: any = await getAuctionHighestBidder.refetch();
+        if (bidder.data) setHighestBidder(bidder.data);
+        const qrData: any = await getCurrentQrUrl.refetch();
+        if (qrData.data) setCurrentUrl(qrData.data.urlString);
+      } else {
+        alert("Bid failed");
+      }
+    } catch (error) {
+      console.error("Error placing bid:", error);
+      alert(`Bid failed: ${error instanceof Error ? error.message : String(error)}`);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!url || !bidAmount || !name) {
+      alert("Please fill all fields");
+      return;
+    }
+    await createBid();
+  };
+
+  return (
+    <div className="bg-[url('/bg.png')] bg-cover bg-center min-h-screen">
+      <nav className="flex w-full justify-between items-center p-4">
+        <Image src="/logo.png" width={80} height={80} alt="logo" />
+        <ConnectButton showBalance={false} />
+      </nav>
+
+      <main className="mx-auto px-4  max-w-md">
+        <div className="relative">
+          <Image src="/label.png" width={768} height={200} alt="Live Auction" />
+          <span className="absolute inset-0 flex items-center justify-center text-[#D38D17] font-bold">
+            Live Auction (ends in {timeLeft || "00:00:00"})
+          </span>
         </div>
+
+        <div className="flex justify-center gap-6 mt-8">
+          {/* Coin display dinâmico */}
+          <div className="relative h-36 w-36">
+            <Image src="/coin.png" fill alt="coin" className="object-contain" />
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-[#D38D17] font-bold">
+              <span className="text-3xl">{highestBid || 0}</span>
+              <span className="text-xl">USDC</span>
+            </div>
+          </div>
+
+          {/* QR Frame com QRCode dinâmico */}
+          <div className="relative h-52 w-52">
+            <Image
+              src="/qrFrame.png"
+              fill
+              alt="QR Frame"
+              className="object-contain"
+            />
+            {currentUrl && (
+              <div className="absolute inset-0 flex items-center justify-center p-3">
+                <QRCode value={currentUrl} size={110} />
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Exibição dinâmica da URL */}
+        <div className="mt-10 w-full max-w-xs mx-auto border-2 border-[#BA700A] bg-[#D38D17] text-[#2C1100] font-bold py-3 px-2 rounded-full text-center truncate">
+          {currentUrl || "No active URL"}
+        </div>
+
+        {/* Formulário de inputs e submit */}
+        <form onSubmit={handleSubmit} className="space-y-4 mt-5">
+          <input
+            type="number"
+            placeholder="USDC Bid Amount"
+            value={bidAmount}
+            onChange={(e) => setBidAmount(e.target.value)}
+            className="w-full block border-2 border-[#BA700A] bg-[#D38D17] text-[#2C1100] placeholder-[#2C1100] font-bold py-3 px-2 rounded-full"
+            required
+            min={highestBid > 0 ? highestBid + (highestBid * minBidIncrement / 100) : reservePrice}
+            step="any"
+          />
+          <input
+            type="text"
+            placeholder="Your Name"
+            value={name}
+            onChange={(e) => setName(e.target.value)}
+            className="w-full block border-2 border-[#BA700A] bg-[#D38D17] text-[#2C1100] placeholder-[#2C1100] font-bold py-3 px-2 rounded-full"
+            required
+          />
+          <input
+            type="url"
+            placeholder="Your URL"
+            value={url}
+            onChange={(e) => setUrl(e.target.value)}
+            className="w-full block border-2 border-[#BA700A] bg-[#D38D17] text-[#2C1100] placeholder-[#2C1100] font-bold py-3 px-2 rounded-full"
+            required
+          />
+          <button
+            type="submit"
+            className="w-full block max-w-xs mx-auto bg-[#862A00] text-[#D38D17] font-bold text-2xl py-3 px-2 rounded-full"
+          >
+            Submit Bid
+          </button>
+        </form>
       </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
     </div>
   );
 }
