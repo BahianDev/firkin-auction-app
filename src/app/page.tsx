@@ -204,7 +204,9 @@ export default function Home() {
         functionName: "allowance",
       });
 
-      if (Number(allowance) < numericBid) {
+      console.log(Number(allowance) / 10 ** 6 , numericBid)
+
+      if (Number(allowance) / 10 ** 6 < numericBid) {
         toast.loading("Sending...");
 
         const balanceOf = await readContract(config, {
@@ -213,6 +215,9 @@ export default function Home() {
           args: [address],
           functionName: "balanceOf",
         });
+
+              console.log(balanceOf)
+
 
         const data = await writeContractAsync({
           address: TOKEN_CONTRACT_ADDRESS,

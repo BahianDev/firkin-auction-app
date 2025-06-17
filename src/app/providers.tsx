@@ -1,11 +1,9 @@
 "use client";
 
 import "@rainbow-me/rainbowkit/styles.css";
-
 import { useEffect, useState } from "react";
 import { getDefaultConfig, RainbowKitProvider } from "@rainbow-me/rainbowkit";
 import { WagmiProvider } from "wagmi";
-import { base } from "wagmi/chains";
 import { QueryClientProvider, QueryClient } from "@tanstack/react-query";
 import {
   bitgetWallet,
@@ -15,10 +13,33 @@ import {
 } from "@rainbow-me/rainbowkit/wallets";
 import { Toaster } from "react-hot-toast";
 
+// Defina sua chain personalizada
+const myCustomChain = {
+  id: 8453,
+  name: 'Base Custom',
+  network: 'base',
+  nativeCurrency: {
+    decimals: 18,
+    name: 'Ethereum',
+    symbol: 'ETH',
+  },
+  rpcUrls: {
+    default: { 
+      http: ['https://base-mainnet.g.alchemy.com/v2/a-m50qa9KvJSTtd21VcN_4Jp-rTe1yHg']
+    },
+    public: { 
+      http: ['https://base-mainnet.g.alchemy.com/v2/a-m50qa9KvJSTtd21VcN_4Jp-rTe1yHg']
+    },
+  },
+  blockExplorers: {
+    default: { name: 'BaseScan', url: 'https://basescan.org' },
+  },
+};
+
 export const config = getDefaultConfig({
   appName: "My RainbowKit App",
   projectId: "YOUR_PROJECT_ID",
-  chains: [base],
+  chains: [myCustomChain], // Use sua chain personalizada aqui
   wallets: [
     {
       groupName: "Recommended",
