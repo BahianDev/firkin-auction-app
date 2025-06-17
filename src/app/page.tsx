@@ -4,8 +4,16 @@ import { ConnectButton } from "@rainbow-me/rainbowkit";
 import QRCode from "react-qr-code";
 import Image from "next/image";
 import { useState, useEffect } from "react";
-import { useWriteContract, useReadContract, useConfig } from "wagmi";
-import { waitForTransactionReceipt } from "@wagmi/core";
+import {
+  useWriteContract,
+  useReadContract,
+  useConfig,
+  useAccount,
+} from "wagmi";
+import { waitForTransactionReceipt, readContract } from "@wagmi/core";
+import toast from "react-hot-toast";
+import { parseEther } from "ethers";
+import { USDC_CONTRACT_ABI } from "./abis/USDC";
 
 export default function Home() {
   const [url, setUrl] = useState("");
@@ -20,7 +28,10 @@ export default function Home() {
 
   const config = useConfig();
 
+  const { address } = useAccount();
+
   const contractAddress = "0x185de145BC53057CF0730EF8a53b7bEb7677Fa06";
+  const TOKEN_CONTRACT_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
   const contractABI = [
     {
@@ -184,8 +195,41 @@ export default function Home() {
   // Função para enviar um lance
   const createBid = async () => {
     try {
-      // Verificar se o lance atende aos requisitos mínimos
       const numericBid = parseFloat(bidAmount);
+
+      const allowance = await readContract(config, {
+        address: TOKEN_CONTRACT_ADDRESS,
+        abi: USDC_CONTRACT_ABI,
+        args: [address, contractAddress],
+        functionName: "allowance",
+      });
+
+      if (Number(allowance) < numericBid) {
+        toast.loading("Sending...");
+
+        const balanceOf = await readContract(config, {
+          address: TOKEN_CONTRACT_ADDRESS,
+          abi: USDC_CONTRACT_ABI,
+          args: [address],
+          functionName: "balanceOf",
+        });
+
+        const data = await writeContractAsync({
+          address: TOKEN_CONTRACT_ADDRESS,
+          abi: USDC_CONTRACT_ABI,
+          functionName: "approve",
+          args: [contractAddress, parseEther(String(balanceOf))],
+        });
+
+        await waitForTransactionReceipt(config, { hash: data });
+        toast.dismiss();
+        toast.success("Allowance updated");
+        await Promise.all([
+          new Promise((resolve) => setTimeout(resolve, 3000)),
+        ]);
+      }
+
+      // Verificar se o lance atende aos requisitos mínimos
       if (isNaN(numericBid) || numericBid <= 0) {
         alert("Please enter a valid bid amount");
         return;
