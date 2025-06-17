@@ -269,7 +269,7 @@ export default function Home() {
         address: contractAddress,
         abi: contractABI,
         functionName: "createBid",
-        args: [1, url, name, bidAmountInBase6], // Valor convertido para base 6
+        args: [2, url, name, bidAmountInBase6], // Valor convertido para base 6
       });
 
       // Esperar pela confirmação da transação
