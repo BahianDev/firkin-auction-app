@@ -20,14 +20,16 @@ export default function Home() {
 
   const config = useConfig()
 
-  const contractAddress = "0xC724C8230184E793500bC549CfF8188820b98835" 
+  const contractAddress = "0x185de145BC53057CF0730EF8a53b7bEb7677Fa06" 
   
   const contractABI = [
     {
       "inputs": [
         {"internalType": "uint256", "name": "_tokenId", "type": "uint256"},
         {"internalType": "string", "name": "_urlString", "type": "string"},
-        {"internalType": "string", "name": "_name", "type": "string"}
+        {"internalType": "string", "name": "_name", "type": "string"},
+        {"internalType": "uint256", "name": "_bidAmount", "type": "uint256"},
+
       ],
       "name": "createBid",
       "outputs": [],
