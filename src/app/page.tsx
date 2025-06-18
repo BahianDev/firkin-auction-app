@@ -419,24 +419,7 @@ export default function Home() {
                 />
               </div>
               <div className="space-y-3 mt-5">
-                <p className="text-center text-lg">
-                  {name.startsWith("0x") ? formatWallet(name) : name} $1 USDC
-                </p>
-                <p className="text-center text-lg">
-                  {name.startsWith("0x") ? formatWallet(name) : name} $1 USDC
-                </p>
 
-                <p className="text-center text-lg">
-                  {name.startsWith("0x") ? formatWallet(name) : name} $1 USDC
-                </p>
-
-                <p className="text-center text-lg">
-                  {name.startsWith("0x") ? formatWallet(name) : name} $1 USDC
-                </p>
-
-                <p className="text-center text-lg">
-                  {name.startsWith("0x") ? formatWallet(name) : name} $1 USDC
-                </p>
               </div>
             </div>
           </div>
