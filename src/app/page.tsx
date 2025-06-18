@@ -24,6 +24,8 @@ import { RiExternalLinkLine } from "react-icons/ri";
 import { IoCloseSharp } from "react-icons/io5";
 import { formatWallet } from "@/utils/formatWallet";
 import { AUCTION_CONTRACT_ABI } from "./abis/Auction";
+import LinkPreviewServer from "@/components/LinkPreviewServer";
+import MicrolinkPreview from "@/components/MicrolinkPreview";
 
 export default function Home() {
   const reservePrice = 1000000;
@@ -320,15 +322,16 @@ export default function Home() {
 
           {/* QR Frame com QRCode dinâmico */}
           <div className="relative h-52 w-50">
-            <Image
+            {/* <Image
               src="/qrFrame.png"
               fill
               alt="QR Frame"
               className="object-contain"
-            />
+            /> */}
             {currentUrl && (
-              <div className="absolute inset-0 flex items-center justify-center mb-8">
-                <QRCode bgColor="#F9D843" value={currentUrl} size={110} />
+              <div className=" flex items-center justify-center border-8 border-[#F9D843] rounded-lg mt-5">
+                {/* <QRCode bgColor="#F9D843" value={currentUrl} size={110} /> */}
+                <MicrolinkPreview url={currentUrl} />
               </div>
             )}
           </div>
@@ -418,9 +421,7 @@ export default function Home() {
                   className="cursor-pointer"
                 />
               </div>
-              <div className="space-y-3 mt-5">
-
-              </div>
+              <div className="space-y-3 mt-5"></div>
             </div>
           </div>
         </div>
