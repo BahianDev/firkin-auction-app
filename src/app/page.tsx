@@ -10,7 +10,7 @@ import {
   useConfig,
   useAccount,
   useChainId,
-  useSwitchChain
+  useSwitchChain,
 } from "wagmi";
 import { waitForTransactionReceipt, readContract } from "@wagmi/core";
 import toast from "react-hot-toast";
@@ -335,7 +335,7 @@ export default function Home() {
         </div>
 
         <span className=" inset-0 flex items-center justify-center text-[#D38D17] font-bold mt-5">
-          Highest Bidder: {name.startsWith("0x") ? formatWallet(name) : name}
+          Highest Bidder: {formatWallet(highestBidder)}
         </span>
 
         <div className="flex">
