@@ -223,7 +223,7 @@ export default function Home() {
 
       // Verificar se o lance atende aos requisitos mínimos
       if (isNaN(numericBid) || numericBid <= 0) {
-        alert("Please enter a valid bid amount");
+        toast.error("Please enter a valid bid amount");
         return;
       }
 
@@ -232,8 +232,8 @@ export default function Home() {
 
       // Se não há lance anterior, verificar se atende ao preço de reserva
       if (highestBid === 0 && bidAmountInBase6 < reservePrice) {
-        alert(
-          `Bid must be at least ${reservePrice / 10 ** 6} USDC (reserve price)`
+        toast.error(
+          `Bid must be at least ${reservePrice / 10 ** 6} USDC (min bid)`
         );
         return;
       }
@@ -242,7 +242,7 @@ export default function Home() {
       if (highestBid > 0) {
         const minBid = highestBid + (highestBid * minBidIncrement) / 100;
         if (bidAmountInBase6 < minBid) {
-          alert(
+          toast.error(
             `Bid must be at least ${
               minBid / 10 ** 6
             } USDC (${minBidIncrement}% increment)`
@@ -256,13 +256,13 @@ export default function Home() {
         address: contractAddress,
         abi: AUCTION_CONTRACT_ABI,
         functionName: "createBid",
-        args: [2, url, name, bidAmountInBase6], // Valor convertido para base 6
+        args: [auctionTokenId, url, name, bidAmountInBase6], // Valor convertido para base 6
       });
 
       // Esperar pela confirmação da transação
       const receipt = await waitForTransactionReceipt(config, { hash });
       if (receipt.status === "success") {
-        alert("Bid placed successfully!");
+        toast.success("Bid placed successfully!");
         // Atualizar os dados após o lance
         const bid = await getAuctionHighestBid.refetch();
         if (bid.data) setHighestBid(Number(bid.data));
@@ -271,11 +271,11 @@ export default function Home() {
         const qrData: any = await getCurrentQrUrl.refetch();
         if (qrData.data) setCurrentUrl(qrData.data[1]);
       } else {
-        alert("Bid failed");
+        toast.error("Bid failed");
       }
     } catch (error) {
       console.error("Error placing bid:", error);
-      alert(
+      toast.error(
         `Bid failed: ${error instanceof Error ? error.message : String(error)}`
       );
     }
