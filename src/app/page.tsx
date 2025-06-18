@@ -19,6 +19,7 @@ import { getName } from "@coinbase/onchainkit/identity";
 import { base } from "viem/chains";
 import Link from "next/link";
 import { RiExternalLinkLine } from "react-icons/ri";
+import { IoCloseSharp } from "react-icons/io5";
 import { formatWallet } from "@/utils/formatWallet";
 import { AUCTION_CONTRACT_ABI } from "./abis/Auction";
 
@@ -35,14 +36,14 @@ export default function Home() {
   const [highestBid, setHighestBid] = useState(0);
   const [highestBidder, setHighestBidder] = useState("");
 
+  const [showModal, setShowModal] = useState(false);
+
   const config = useConfig();
 
   const { address } = useAccount();
 
   const contractAddress = "0x185de145BC53057CF0730EF8a53b7bEb7677Fa06";
   const TOKEN_CONTRACT_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
-
-
 
   const { writeContractAsync } = useWriteContract();
 
@@ -51,8 +52,8 @@ export default function Home() {
     abi: AUCTION_CONTRACT_ABI,
     functionName: "auctionTokenId",
     query: {
-      initialData: 0
-    }
+      initialData: 0,
+    },
   });
 
   const getAuctionHighestBid = useReadContract({
@@ -277,7 +278,7 @@ export default function Home() {
   return (
     <div className="bg-[url('/bg.png')] bg-cover bg-center min-h-screen py-5">
       <nav className="flex w-full justify-between items-center p-4">
-        <Image src="/logo.png" width={80} height={80} alt="logo" />
+        <Image src="/logo.png" width={100} height={100} alt="logo" />
         <ConnectButton showBalance={false} />
       </nav>
 
@@ -303,7 +304,7 @@ export default function Home() {
           </div>
 
           {/* QR Frame com QRCode dinâmico */}
-          <div className="relative h-52 w-52">
+          <div className="relative h-52 w-50">
             <Image
               src="/qrFrame.png"
               fill
@@ -311,7 +312,7 @@ export default function Home() {
               className="object-contain"
             />
             {currentUrl && (
-              <div className="absolute inset-0 flex items-center justify-center mb-6">
+              <div className="absolute inset-0 flex items-center justify-center mb-8">
                 <QRCode value={currentUrl} size={110} />
               </div>
             )}
@@ -322,15 +323,23 @@ export default function Home() {
           Highest Bidder: {name.startsWith("0x") ? formatWallet(name) : name}
         </span>
 
-        {/* Exibição dinâmica da URL */}
-        <Link
-          href={currentUrl}
-          target="_blank"
-          className="cursor-pointer flex items-center justify-center gap-5 mt-10 w-full max-w-xs mx-auto border-2 border-[#BA700A] bg-[#D38D17] text-[#2C1100] font-bold py-3 px-2 rounded-full text-center truncate"
-        >
-          {currentUrl || "No active URL"}
-          {currentUrl && <RiExternalLinkLine size={25} />}
-        </Link>
+        <div className="flex">
+          {/* Exibição dinâmica da URL */}
+          <Link
+            href={currentUrl}
+            target="_blank"
+            className="cursor-pointer flex items-center justify-center gap-5 mt-10 w-full max-w-xs mx-auto border-2 border-[#BA700A] bg-[#D38D17] text-[#2C1100] font-bold py-3 px-2 rounded-full text-center truncate"
+          >
+            {currentUrl || "No active URL"}
+            {currentUrl && <RiExternalLinkLine size={25} />}
+          </Link>
+          <button
+            onClick={() => setShowModal(!showModal)}
+            className="cursor-pointer w-20 flex items-center justify-center gap-5 mt-10 max-w-xs mx-auto border-2 border-[#BA700A] bg-[#D38D17] text-[#2C1100] font-bold py-3 px-2 rounded-full text-center truncate"
+          >
+            Bids
+          </button>
+        </div>
 
         {/* Formulário de inputs e submit */}
         <form onSubmit={handleSubmit} className="space-y-4 mt-5">
@@ -371,6 +380,49 @@ export default function Home() {
           </button>
         </form>
       </main>
+
+      {showModal && (
+        <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
+          <div className="relative w-[90%] max-w-md">
+            {/* Imagem do modal */}
+            <Image
+              src="/modal.png" // nomeie assim o arquivo exportado para o diretório public/
+              width={768}
+              height={1152}
+              alt="Pergaminho Modal"
+              className="w-full h-auto object-cover rounded-xl"
+            />
+
+            {/* Conteúdo acima da imagem */}
+            <div className="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-start p-8 text-yellow-300 font-bold">
+              <div className="flex items-center justify-between w-full px-10 mt-2">
+                <h2 className="text-3xl m-4">Bids</h2>
+                <IoCloseSharp onClick={() => setShowModal(false)} size={30} className="cursor-pointer" />
+              </div>
+              <div className="space-y-3 mt-5">
+                <p className="text-center text-lg">
+                  {name.startsWith("0x") ? formatWallet(name) : name} $1 USDC
+                </p>
+                <p className="text-center text-lg">
+                  {name.startsWith("0x") ? formatWallet(name) : name} $1 USDC
+                </p>
+
+                <p className="text-center text-lg">
+                  {name.startsWith("0x") ? formatWallet(name) : name} $1 USDC
+                </p>
+
+                <p className="text-center text-lg">
+                  {name.startsWith("0x") ? formatWallet(name) : name} $1 USDC
+                </p>
+
+                <p className="text-center text-lg">
+                  {name.startsWith("0x") ? formatWallet(name) : name} $1 USDC
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
