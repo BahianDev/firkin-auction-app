@@ -328,7 +328,7 @@ export default function Home() {
             />
             {currentUrl && (
               <div className="absolute inset-0 flex items-center justify-center mb-8">
-                <QRCode value={currentUrl} size={110} />
+                <QRCode bgColor="#F9D843" value={currentUrl} size={110} />
               </div>
             )}
           </div>
