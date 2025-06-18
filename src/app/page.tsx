@@ -9,6 +9,8 @@ import {
   useReadContract,
   useConfig,
   useAccount,
+  useChainId,
+  useSwitchChain
 } from "wagmi";
 import { waitForTransactionReceipt, readContract } from "@wagmi/core";
 import toast from "react-hot-toast";
@@ -27,6 +29,9 @@ export default function Home() {
   const reservePrice = 1000000;
 
   const minBidIncrement = 10;
+
+  const { switchChainAsync } = useSwitchChain();
+  const chain = useChainId();
 
   const [url, setUrl] = useState("");
   const [currentUrl, setCurrentUrl] = useState("");
@@ -168,6 +173,16 @@ export default function Home() {
   // Função para enviar um lance
   const createBid = async () => {
     try {
+      if (chain !== base.id) {
+        if (switchChainAsync) {
+          await switchChainAsync({
+            chainId: base.id,
+          });
+        } else {
+          return toast.error("Please switch to the Base network.");
+        }
+      }
+
       const numericBid = parseFloat(bidAmount);
 
       const allowance = await readContract(config, {
@@ -397,7 +412,11 @@ export default function Home() {
             <div className="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-start p-8 text-yellow-300 font-bold">
               <div className="flex items-center justify-between w-full px-10 mt-2">
                 <h2 className="text-3xl m-4">Bids</h2>
-                <IoCloseSharp onClick={() => setShowModal(false)} size={30} className="cursor-pointer" />
+                <IoCloseSharp
+                  onClick={() => setShowModal(false)}
+                  size={30}
+                  className="cursor-pointer"
+                />
               </div>
               <div className="space-y-3 mt-5">
                 <p className="text-center text-lg">
