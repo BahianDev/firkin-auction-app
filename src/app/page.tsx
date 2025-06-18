@@ -15,7 +15,18 @@ import toast from "react-hot-toast";
 import { parseEther } from "ethers";
 import { USDC_CONTRACT_ABI } from "./abis/USDC";
 
+import { getName } from "@coinbase/onchainkit/identity";
+import { base } from "viem/chains";
+import Link from "next/link";
+import { RiExternalLinkLine } from "react-icons/ri";
+import { formatWallet } from "@/utils/formatWallet";
+import { AUCTION_CONTRACT_ABI } from "./abis/Auction";
+
 export default function Home() {
+  const reservePrice = 1000000;
+
+  const minBidIncrement = 10;
+
   const [url, setUrl] = useState("");
   const [currentUrl, setCurrentUrl] = useState("");
   const [bidAmount, setBidAmount] = useState("");
@@ -23,8 +34,6 @@ export default function Home() {
   const [timeLeft, setTimeLeft] = useState("");
   const [highestBid, setHighestBid] = useState(0);
   const [highestBidder, setHighestBidder] = useState("");
-  const [reservePrice, setReservePrice] = useState(0);
-  const [minBidIncrement, setMinBidIncrement] = useState(0);
 
   const config = useConfig();
 
@@ -33,129 +42,73 @@ export default function Home() {
   const contractAddress = "0x185de145BC53057CF0730EF8a53b7bEb7677Fa06";
   const TOKEN_CONTRACT_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
-  const contractABI = [
-    {
-      inputs: [
-        { internalType: "uint256", name: "_tokenId", type: "uint256" },
-        { internalType: "string", name: "_urlString", type: "string" },
-        { internalType: "string", name: "_name", type: "string" },
-        { internalType: "uint256", name: "_bidAmount", type: "uint256" },
-      ],
-      name: "createBid",
-      outputs: [],
-      stateMutability: "nonpayable",
-      type: "function",
-    },
-    {
-      inputs: [],
-      name: "auctionHighestBid",
-      outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-      stateMutability: "view",
-      type: "function",
-    },
-    {
-      inputs: [],
-      name: "auctionHighestBidder",
-      outputs: [{ internalType: "address", name: "", type: "address" }],
-      stateMutability: "view",
-      type: "function",
-    },
-    {
-      inputs: [],
-      name: "reservePrice",
-      outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
-      stateMutability: "view",
-      type: "function",
-    },
-    {
-      inputs: [],
-      name: "minBidIncrement",
-      outputs: [{ internalType: "uint8", name: "", type: "uint8" }],
-      stateMutability: "view",
-      type: "function",
-    },
-    {
-      inputs: [],
-      name: "auctionEndTime",
-      outputs: [{ internalType: "uint40", name: "", type: "uint40" }],
-      stateMutability: "view",
-      type: "function",
-    },
-    {
-      inputs: [],
-      name: "auctionQrMetadata",
-      outputs: [
-        { internalType: "uint256", name: "validUntil", type: "uint256" },
-        { internalType: "string", name: "urlString", type: "string" },
-      ],
-      stateMutability: "view",
-      type: "function",
-    },
-  ];
+
 
   const { writeContractAsync } = useWriteContract();
 
+  const { data: auctionTokenId } = useReadContract({
+    address: contractAddress,
+    abi: AUCTION_CONTRACT_ABI,
+    functionName: "auctionTokenId",
+    query: {
+      initialData: 0
+    }
+  });
+
   const getAuctionHighestBid = useReadContract({
     address: contractAddress,
-    abi: contractABI,
+    abi: AUCTION_CONTRACT_ABI,
     functionName: "auctionHighestBid",
+    query: {
+      refetchInterval: 6000,
+    },
   });
+
+  useEffect(() => {
+    if (getAuctionHighestBid.data !== undefined) {
+      setHighestBid(Number(getAuctionHighestBid.data));
+    }
+  }, [getAuctionHighestBid.data]);
 
   const getAuctionHighestBidder = useReadContract({
     address: contractAddress,
-    abi: contractABI,
+    abi: AUCTION_CONTRACT_ABI,
     functionName: "auctionHighestBidder",
+    query: {
+      refetchInterval: 6000,
+    },
   });
 
-  const getReservePrice = useReadContract({
-    address: contractAddress,
-    abi: contractABI,
-    functionName: "reservePrice",
-  });
-
-  const getMinBidIncrement = useReadContract({
-    address: contractAddress,
-    abi: contractABI,
-    functionName: "minBidIncrement",
-  });
+  useEffect(() => {
+    if (getAuctionHighestBidder.data !== undefined) {
+      setHighestBidder(String(getAuctionHighestBidder.data));
+    }
+  }, [getAuctionHighestBidder.data]);
 
   const getAuctionEndTime = useReadContract({
     address: contractAddress,
-    abi: contractABI,
+    abi: AUCTION_CONTRACT_ABI,
     functionName: "auctionEndTime",
   });
 
-  const getCurrentQrUrl = useReadContract({
+  const getCurrentQrUrl: any = useReadContract({
     address: contractAddress,
-    abi: contractABI,
+    abi: AUCTION_CONTRACT_ABI,
     functionName: "auctionQrMetadata",
+    query: {
+      refetchInterval: 6000,
+    },
   });
+
+  useEffect(() => {
+    if (getCurrentQrUrl.data !== undefined) {
+      setCurrentUrl(String(getCurrentQrUrl.data[1]));
+    }
+  }, [getCurrentQrUrl.data]);
 
   useEffect(() => {
     const fetchAuctionData = async () => {
       try {
-        // Atualizar maior lance
-        const bid = await getAuctionHighestBid.refetch();
-        if (bid.data) setHighestBid(Number(bid.data));
-
-        // Atualizar maior licitante
-        const bidder: any = await getAuctionHighestBidder.refetch();
-        if (bidder.data) setHighestBidder(bidder.data);
-
-        // Atualizar preço de reserva
-        const reserve = await getReservePrice.refetch();
-        if (reserve.data) setReservePrice(Number(reserve.data));
-
-        // Atualizar incremento mínimo
-        const increment = await getMinBidIncrement.refetch();
-        if (increment.data) setMinBidIncrement(Number(increment.data));
-
-        // Atualizar URL do QR code
-        const qrData: any = await getCurrentQrUrl.refetch();
-        if (qrData.data && qrData.data[1] !== "0x") {
-          setCurrentUrl(qrData.data[1]);
-        }
-
         // Atualizar contagem regressiva
         const endTime = await getAuctionEndTime.refetch();
         if (endTime.data) {
@@ -167,10 +120,29 @@ export default function Home() {
     };
 
     fetchAuctionData();
-    const interval = setInterval(fetchAuctionData, 1500); // Atualizar a cada 15 segundos
+    const interval = setInterval(fetchAuctionData, 1000); // Atualizar a cada 15 segundos
 
     return () => clearInterval(interval);
   }, []);
+
+  useEffect(() => {
+    const fetchEns = async () => {
+      try {
+        if (!address) return;
+        const ens = await getName({
+          address: address as `0x${string}`,
+          chain: base,
+        });
+        setName(ens?.toString() ?? address);
+      } catch (error) {
+        console.error("Error fetching ENS name:", error);
+      }
+    };
+
+    if (address) {
+      fetchEns();
+    }
+  }, [address, getName]);
 
   // Função para calcular e atualizar a contagem regressiva
   const updateCountdown = (endTime: number) => {
@@ -204,7 +176,7 @@ export default function Home() {
         functionName: "allowance",
       });
 
-      console.log(Number(allowance) / 10 ** 6 , numericBid)
+      console.log(Number(allowance) / 10 ** 6, numericBid);
 
       if (Number(allowance) / 10 ** 6 < numericBid) {
         toast.loading("Sending...");
@@ -216,8 +188,7 @@ export default function Home() {
           functionName: "balanceOf",
         });
 
-              console.log(balanceOf)
-
+        console.log(balanceOf);
 
         const data = await writeContractAsync({
           address: TOKEN_CONTRACT_ADDRESS,
@@ -267,7 +238,7 @@ export default function Home() {
       // Chamar a função do contrato com o valor em base 6
       const hash = await writeContractAsync({
         address: contractAddress,
-        abi: contractABI,
+        abi: AUCTION_CONTRACT_ABI,
         functionName: "createBid",
         args: [2, url, name, bidAmountInBase6], // Valor convertido para base 6
       });
@@ -304,13 +275,16 @@ export default function Home() {
   };
 
   return (
-    <div className="bg-[url('/bg.png')] bg-cover bg-center min-h-screen">
+    <div className="bg-[url('/bg.png')] bg-cover bg-center min-h-screen py-5">
       <nav className="flex w-full justify-between items-center p-4">
         <Image src="/logo.png" width={80} height={80} alt="logo" />
         <ConnectButton showBalance={false} />
       </nav>
 
       <main className="mx-auto px-4  max-w-md">
+        <div className="flex items-center justify-center text-2xl border-2 border-[#FCD949] text-[#FCD949]  rounded-full w-12 h-12 mb-2 justify-self-center">
+          <span>{String(auctionTokenId)}</span>
+        </div>
         <div className="relative">
           <Image src="/label.png" width={768} height={200} alt="Live Auction" />
           <span className="absolute inset-0 flex items-center justify-center text-[#D38D17] font-bold">
@@ -320,7 +294,7 @@ export default function Home() {
 
         <div className="flex justify-center gap-6 mt-8">
           {/* Coin display dinâmico */}
-          <div className="relative h-36 w-36">
+          <div className="relative h-44 w-44">
             <Image src="/coin.png" fill alt="coin" className="object-contain" />
             <div className="absolute inset-0 flex flex-col items-center justify-center text-[#D38D17] font-bold">
               <span className="text-3xl">{highestBid / 1000000 || 0}</span>
@@ -344,10 +318,19 @@ export default function Home() {
           </div>
         </div>
 
+        <span className=" inset-0 flex items-center justify-center text-[#D38D17] font-bold mt-5">
+          Highest Bidder: {name.startsWith("0x") ? formatWallet(name) : name}
+        </span>
+
         {/* Exibição dinâmica da URL */}
-        <div className="mt-10 w-full max-w-xs mx-auto border-2 border-[#BA700A] bg-[#D38D17] text-[#2C1100] font-bold py-3 px-2 rounded-full text-center truncate">
+        <Link
+          href={currentUrl}
+          target="_blank"
+          className="cursor-pointer flex items-center justify-center gap-5 mt-10 w-full max-w-xs mx-auto border-2 border-[#BA700A] bg-[#D38D17] text-[#2C1100] font-bold py-3 px-2 rounded-full text-center truncate"
+        >
           {currentUrl || "No active URL"}
-        </div>
+          {currentUrl && <RiExternalLinkLine size={25} />}
+        </Link>
 
         {/* Formulário de inputs e submit */}
         <form onSubmit={handleSubmit} className="space-y-4 mt-5">
@@ -359,7 +342,7 @@ export default function Home() {
                     (highestBid + (highestBid * minBidIncrement) / 100) /
                     10 ** 6
                   } USDC`
-                : `Reserve price: ${reservePrice / 10 ** 6} USDC`
+                : `Min bid: ${reservePrice / 10 ** 6} USDC`
             }
             value={bidAmount}
             onChange={(e) => setBidAmount(e.target.value)}
@@ -373,14 +356,6 @@ export default function Home() {
             step="0.000001"
           />
           <input
-            type="text"
-            placeholder="Your Name"
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            className="w-full block border-2 border-[#BA700A] bg-[#D38D17] text-[#2C1100] placeholder-[#2C1100] font-bold py-3 px-2 rounded-full"
-            required
-          />
-          <input
             type="url"
             placeholder="Your URL"
             value={url}
@@ -390,7 +365,7 @@ export default function Home() {
           />
           <button
             type="submit"
-            className="w-full block max-w-xs mx-auto bg-[#862A00] text-[#D38D17] font-bold text-2xl py-3 px-2 rounded-full"
+            className="cursor-pointer w-full block max-w-xs mx-auto bg-[#b03f0a] text-[#de9b26] font-bold text-2xl py-3 px-2 rounded-full transition-colors duration-200 ease-in-out hover:bg-[#de9b26] hover:text-[#b03f0a]"
           >
             Submit Bid
           </button>

@@ -12,27 +12,37 @@ import {
   rainbowWallet,
 } from "@rainbow-me/rainbowkit/wallets";
 import { Toaster } from "react-hot-toast";
+import { base, mainnet } from "viem/chains";
 
 // Defina sua chain personalizada
 const myCustomChain = {
   id: 8453,
-  name: 'Base Custom',
-  network: 'base',
+  name: "Base Custom",
+  network: "base",
   nativeCurrency: {
     decimals: 18,
-    name: 'Ethereum',
-    symbol: 'ETH',
+    name: "Ethereum",
+    symbol: "ETH",
+  },
+  contracts: {
+    ensUniversalResolver: {
+      address: "0xaBd80E8a13596fEeA40Fd26fD6a24c3fe76F05fB" as `0x${string}`,
+    },
   },
   rpcUrls: {
-    default: { 
-      http: ['https://base-mainnet.g.alchemy.com/v2/a-m50qa9KvJSTtd21VcN_4Jp-rTe1yHg']
+    default: {
+      http: [
+        "https://base-mainnet.g.alchemy.com/v2/a-m50qa9KvJSTtd21VcN_4Jp-rTe1yHg",
+      ],
     },
-    public: { 
-      http: ['https://base-mainnet.g.alchemy.com/v2/a-m50qa9KvJSTtd21VcN_4Jp-rTe1yHg']
+    public: {
+      http: [
+        "https://base-mainnet.g.alchemy.com/v2/a-m50qa9KvJSTtd21VcN_4Jp-rTe1yHg",
+      ],
     },
   },
   blockExplorers: {
-    default: { name: 'BaseScan', url: 'https://basescan.org' },
+    default: { name: "BaseScan", url: "https://basescan.org" },
   },
 };
 
