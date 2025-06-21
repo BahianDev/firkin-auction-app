@@ -3,7 +3,7 @@
 import { ConnectButton } from "@rainbow-me/rainbowkit";
 import QRCode from "react-qr-code";
 import Image from "next/image";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import {
   useWriteContract,
   useReadContract,
@@ -24,8 +24,15 @@ import { RiExternalLinkLine } from "react-icons/ri";
 import { IoCloseSharp } from "react-icons/io5";
 import { formatWallet } from "@/utils/formatWallet";
 import { AUCTION_CONTRACT_ABI } from "./abis/Auction";
-import LinkPreviewServer from "@/components/LinkPreviewServer";
 import MicrolinkPreview from "@/components/MicrolinkPreview";
+
+type Bid = {
+  bidder: string;
+  amount: bigint;
+  timestamp: bigint;
+  urlString: string;
+  name: string;
+};
 
 export default function Home() {
   const reservePrice = 1000000;
@@ -45,11 +52,24 @@ export default function Home() {
 
   const [showModal, setShowModal] = useState(false);
 
+  const [bids, setBids] = useState<Bid[]>([]);
+
+  const groupedBids = useMemo(() => {
+    const map: Record<string, Bid> = {};
+    bids.forEach((b) => {
+      const exist = map[b.bidder];
+      if (!exist || b.timestamp > exist.timestamp) {
+        map[b.bidder] = b;
+      }
+    });
+    return Object.values(map);
+  }, [bids]);
+
   const config = useConfig();
 
   const { address } = useAccount();
 
-  const contractAddress = "0x185de145BC53057CF0730EF8a53b7bEb7677Fa06";
+  const contractAddress = "0x661345A45b18CdC32FfB5b67F3A397d18D5f34FC";
   const TOKEN_CONTRACT_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
   const { writeContractAsync } = useWriteContract();
@@ -152,7 +172,29 @@ export default function Home() {
     }
   }, [address, getName]);
 
-  // Função para calcular e atualizar a contagem regressiva
+  const getAllBids = useReadContract({
+    address: contractAddress,
+    abi: AUCTION_CONTRACT_ABI,
+    functionName: "getAllBids",
+    args: [auctionTokenId!],
+    query: { enabled: showModal },
+  });
+
+  useEffect(() => {
+    if (getAllBids.data) {
+      const arr = getAllBids.data as any[];
+      console.log(arr);
+      const parsed = arr.map((b) => ({
+        bidder: b.bidder,
+        amount: b.amount as bigint,
+        timestamp: b.timestamp as bigint,
+        urlString: b.urlString,
+        name: b.name,
+      }));
+      setBids(parsed);
+    }
+  }, [getAllBids.data]);
+
   const updateCountdown = (endTime: number) => {
     const now = Date.now();
     if (endTime <= now) {
@@ -272,6 +314,18 @@ export default function Home() {
         if (bidder.data) setHighestBidder(bidder.data);
         const qrData: any = await getCurrentQrUrl.refetch();
         if (qrData.data) setCurrentUrl(qrData.data[1]);
+        const allBids: any = await getAllBids.refetch();
+        console.log(allBids);
+        if (allBids.data)
+          setBids(
+            allBids.data.map((b: any) => ({
+              bidder: b.bidder,
+              amount: b.amount as bigint,
+              timestamp: b.timestamp as bigint,
+              urlString: b.urlString,
+              name: b.name,
+            }))
+          );
       } else {
         toast.error("Bid failed");
       }
@@ -402,16 +456,13 @@ export default function Home() {
       {showModal && (
         <div className="fixed inset-0 bg-black/60 flex items-center justify-center z-50">
           <div className="relative w-[90%] max-w-md">
-            {/* Imagem do modal */}
             <Image
-              src="/modal.png" // nomeie assim o arquivo exportado para o diretório public/
+              src="/modal.png"
               width={768}
               height={1152}
               alt="Pergaminho Modal"
               className="w-full h-auto object-cover rounded-xl"
             />
-
-            {/* Conteúdo acima da imagem */}
             <div className="absolute top-0 left-0 w-full h-full flex flex-col items-center justify-start p-8 text-yellow-300 font-bold">
               <div className="flex items-center justify-between w-full px-10 mt-2">
                 <h2 className="text-3xl m-4">Bids</h2>
@@ -421,7 +472,30 @@ export default function Home() {
                   className="cursor-pointer"
                 />
               </div>
-              <div className="space-y-3 mt-5"></div>
+              <ul className="mt-6 max-h-96 overflow-auto px-6 py-4 space-y-4 w-full">
+                {groupedBids.length > 0 ? (
+                  groupedBids.map((b, i) => (
+                    <li
+                      key={i}
+                      className="flex justify-between items-center bg-black/50 p-4 rounded-lg"
+                    >
+                      <div className="flex-1">{formatWallet(b.bidder)}</div>
+                      <div className="flex flex-col items-end space-y-1">
+                        <span>{Number(b.amount) / 10 ** 6} USDC</span>
+                        <a
+                          href={b.urlString}
+                          target="_blank"
+                          className="underline truncate max-w-xs text-xs"
+                        >
+                          {b.urlString}
+                        </a>
+                      </div>
+                    </li>
+                  ))
+                ) : (
+                  <li className="text-center py-4">No bids yet</li>
+                )}
+              </ul>
             </div>
           </div>
         </div>

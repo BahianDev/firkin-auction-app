@@ -295,6 +295,22 @@ export const AUCTION_CONTRACT_ABI = [
     type: "event",
   },
   {
+    inputs: [
+      { internalType: "uint256", name: "", type: "uint256" },
+      { internalType: "uint256", name: "", type: "uint256" },
+    ],
+    name: "auctionBids",
+    outputs: [
+      { internalType: "address", name: "bidder", type: "address" },
+      { internalType: "uint256", name: "amount", type: "uint256" },
+      { internalType: "uint40", name: "timestamp", type: "uint40" },
+      { internalType: "string", name: "urlString", type: "string" },
+      { internalType: "string", name: "name", type: "string" },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [],
     name: "auctionEndTime",
     outputs: [{ internalType: "uint40", name: "", type: "uint40" }],
@@ -354,6 +370,13 @@ export const AUCTION_CONTRACT_ABI = [
     type: "function",
   },
   {
+    inputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    name: "closedAuctions",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
     inputs: [
       { internalType: "uint256", name: "_tokenId", type: "uint256" },
       { internalType: "string", name: "_urlString", type: "string" },
@@ -369,6 +392,33 @@ export const AUCTION_CONTRACT_ABI = [
     inputs: [],
     name: "duration",
     outputs: [{ internalType: "uint40", name: "", type: "uint40" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "auctionId", type: "uint256" }],
+    name: "getAllBids",
+    outputs: [
+      {
+        components: [
+          { internalType: "address", name: "bidder", type: "address" },
+          { internalType: "uint256", name: "amount", type: "uint256" },
+          { internalType: "uint40", name: "timestamp", type: "uint40" },
+          { internalType: "string", name: "urlString", type: "string" },
+          { internalType: "string", name: "name", type: "string" },
+        ],
+        internalType: "struct WTFauction.Bid[]",
+        name: "",
+        type: "tuple[]",
+      },
+    ],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "auctionId", type: "uint256" }],
+    name: "getBidCount",
+    outputs: [{ internalType: "uint256", name: "", type: "uint256" }],
     stateMutability: "view",
     type: "function",
   },
@@ -402,6 +452,20 @@ export const AUCTION_CONTRACT_ABI = [
     inputs: [],
     name: "owner",
     outputs: [{ internalType: "address", name: "", type: "address" }],
+    stateMutability: "view",
+    type: "function",
+  },
+  {
+    inputs: [{ internalType: "uint256", name: "", type: "uint256" }],
+    name: "pastAuctions",
+    outputs: [
+      { internalType: "uint256", name: "tokenId", type: "uint256" },
+      { internalType: "uint40", name: "startTime", type: "uint40" },
+      { internalType: "uint40", name: "endTime", type: "uint40" },
+      { internalType: "bool", name: "settled", type: "bool" },
+      { internalType: "address", name: "highestBidder", type: "address" },
+      { internalType: "uint256", name: "highestBid", type: "uint256" },
+    ],
     stateMutability: "view",
     type: "function",
   },
