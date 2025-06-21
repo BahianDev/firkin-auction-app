@@ -1,7 +1,6 @@
 "use client";
 
 import { ConnectButton } from "@rainbow-me/rainbowkit";
-import QRCode from "react-qr-code";
 import Image from "next/image";
 import { useState, useEffect, useMemo } from "react";
 import {
@@ -21,10 +20,11 @@ import { getName } from "@coinbase/onchainkit/identity";
 import { base } from "viem/chains";
 import Link from "next/link";
 import { RiExternalLinkLine } from "react-icons/ri";
-import { IoCloseSharp } from "react-icons/io5";
 import { formatWallet } from "@/utils/formatWallet";
 import { AUCTION_CONTRACT_ABI } from "./abis/Auction";
 import MicrolinkPreview from "@/components/MicrolinkPreview";
+import { IoCloseSharp, IoChevronBack, IoChevronForward } from "react-icons/io5";
+
 
 type Bid = {
   bidder: string;
@@ -41,6 +41,9 @@ export default function Home() {
 
   const { switchChainAsync } = useSwitchChain();
   const chain = useChainId();
+
+  const [currentAuctionId, setCurrentAuctionId] = useState<number>(0);
+  const [maxAuctionId, setMaxAuctionId] = useState<number>(0);
 
   const [url, setUrl] = useState("");
   const [currentUrl, setCurrentUrl] = useState("");
@@ -74,14 +77,19 @@ export default function Home() {
 
   const { writeContractAsync } = useWriteContract();
 
-  const { data: auctionTokenId } = useReadContract({
-    address: contractAddress,
+  const { data: auctionTokenCount } = useReadContract({
+    address: "0x661345A45b18CdC32FfB5b67F3A397d18D5f34FC",
     abi: AUCTION_CONTRACT_ABI,
     functionName: "auctionTokenId",
-    query: {
-      initialData: 0,
-    },
+    query: { initialData: 0 },
   });
+
+  useEffect(() => {
+    if (auctionTokenCount !== undefined) {
+      setMaxAuctionId(Number(auctionTokenCount));
+      setCurrentAuctionId((prev) => prev || Number(auctionTokenCount));
+    }
+  }, [auctionTokenCount]);
 
   const getAuctionHighestBid = useReadContract({
     address: contractAddress,
@@ -176,7 +184,7 @@ export default function Home() {
     address: contractAddress,
     abi: AUCTION_CONTRACT_ABI,
     functionName: "getAllBids",
-    args: [auctionTokenId!],
+    args: [currentAuctionId!],
     query: { enabled: showModal },
   });
 
@@ -300,7 +308,7 @@ export default function Home() {
         address: contractAddress,
         abi: AUCTION_CONTRACT_ABI,
         functionName: "createBid",
-        args: [auctionTokenId, url, name, bidAmountInBase6], // Valor convertido para base 6
+        args: [currentAuctionId, url, name, bidAmountInBase6], // Valor convertido para base 6
       });
 
       // Esperar pela confirmação da transação
@@ -346,20 +354,45 @@ export default function Home() {
     await createBid();
   };
 
+  const prevAuction = () => setCurrentAuctionId((id) => Math.max(1, id - 1));
+  const nextAuction = () =>
+    setCurrentAuctionId((id) => Math.min(maxAuctionId, id + 1));
+
   return (
-    <div className="bg-[url('/bg.png')] bg-cover bg-center min-h-screen py-5">
+    <div className="bg-[url('/bg2.png')] md:bg-[url('/bg2wide.png')] bg-cover bg-no-repeat bg-center min-h-screen py-5">
       <nav className="flex w-full justify-between items-center p-4">
-        <Image src="/logo.png" width={100} height={100} alt="logo" />
+        <Image src="/logo.png" width={120} height={120} alt="logo" />
         <ConnectButton showBalance={false} />
       </nav>
 
       <main className="mx-auto px-4  max-w-md">
-        <div className="flex items-center justify-center text-2xl border-2 border-[#FCD949] text-[#FCD949]  rounded-full w-12 h-12 mb-2 justify-self-center">
-          <span>{String(auctionTokenId)}</span>
+        <div className="flex items-center justify-between space-x-4 mb-4">
+          <button onClick={prevAuction} disabled={currentAuctionId <= 1}>
+            <IoChevronBack
+              size={24}
+              className={currentAuctionId <= 1 ? "text-gray-400" : "text-white"}
+            />
+          </button>
+          <div className="text-2xl border-2 border-[#FCD949] text-[#FFDC61] font-bold rounded-full w-12 h-12 flex items-center justify-center">
+            {currentAuctionId}
+          </div>
+          <button
+            onClick={nextAuction}
+            disabled={currentAuctionId >= maxAuctionId}
+          >
+            <IoChevronForward
+              size={24}
+              className={
+                currentAuctionId >= maxAuctionId
+                  ? "text-gray-400"
+                  : "text-white"
+              }
+            />
+          </button>
         </div>
         <div className="relative">
           <Image src="/label.png" width={768} height={200} alt="Live Auction" />
-          <span className="absolute inset-0 flex items-center justify-center text-[#D38D17] font-bold">
+          <span className="absolute inset-0 flex items-center justify-center text-[#FFDC61] font-bold">
             Live Auction (ends in {timeLeft || "00:00:00"})
           </span>
         </div>
@@ -368,7 +401,7 @@ export default function Home() {
           {/* Coin display dinâmico */}
           <div className="relative h-44 w-44">
             <Image src="/coin.png" fill alt="coin" className="object-contain" />
-            <div className="absolute inset-0 flex flex-col items-center justify-center text-[#D38D17] font-bold">
+            <div className="absolute inset-0 flex flex-col items-center justify-center text-[#FFDC61] font-bold">
               <span className="text-3xl">{highestBid / 1000000 || 0}</span>
               <span className="text-xl">USDC</span>
             </div>
@@ -391,7 +424,7 @@ export default function Home() {
           </div>
         </div>
 
-        <span className=" inset-0 flex items-center justify-center text-[#D38D17] font-bold mt-5">
+        <span className=" inset-0 flex items-center justify-center text-[#FFDC61] font-bold mt-5">
           Highest Bidder: {formatWallet(highestBidder)}
         </span>
 
@@ -400,14 +433,14 @@ export default function Home() {
           <Link
             href={currentUrl}
             target="_blank"
-            className="cursor-pointer flex items-center justify-center gap-5 mt-10 w-full max-w-xs mx-auto border-2 border-[#BA700A] bg-[#D38D17] text-[#2C1100] font-bold py-3 px-2 rounded-full text-center truncate"
+            className="cursor-pointer flex items-center justify-center gap-5 mt-10 w-full max-w-xs mx-auto border-2 border-[#BA700A] bg-[#FFDC61] text-[#2C1100] font-bold py-3 px-2 rounded-full text-center truncate"
           >
             {currentUrl || "No active URL"}
             {currentUrl && <RiExternalLinkLine size={25} />}
           </Link>
           <button
             onClick={() => setShowModal(!showModal)}
-            className="cursor-pointer w-20 flex items-center justify-center gap-5 mt-10 max-w-xs mx-auto border-2 border-[#BA700A] bg-[#D38D17] text-[#2C1100] font-bold py-3 px-2 rounded-full text-center truncate"
+            className="cursor-pointer w-20 flex items-center justify-center gap-5 mt-10 max-w-xs mx-auto border-2 border-[#BA700A] bg-[#FFDC61] text-[#2C1100] font-bold py-3 px-2 rounded-full text-center truncate"
           >
             Bids
           </button>
@@ -427,7 +460,7 @@ export default function Home() {
             }
             value={bidAmount}
             onChange={(e) => setBidAmount(e.target.value)}
-            className="w-full block border-2 border-[#BA700A] bg-[#D38D17] text-[#2C1100] placeholder-[#2C1100] font-bold py-3 px-2 rounded-full"
+            className="w-full block border-2 border-[#BA700A] bg-[#FFDC61] text-[#2C1100] placeholder-[#2C1100] font-bold py-3 px-2 rounded-full"
             required
             min={
               highestBid > 0
@@ -441,12 +474,12 @@ export default function Home() {
             placeholder="https://example.com/your-page"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            className="w-full block border-2 border-[#BA700A] bg-[#D38D17] text-[#2C1100] placeholder-[#2C1100] font-bold py-3 px-2 rounded-full"
+            className="w-full block border-2 border-[#BA700A] bg-[#FFDC61] text-[#2C1100] placeholder-[#2C1100] font-bold py-3 px-2 rounded-full"
             required
           />
           <button
             type="submit"
-            className="cursor-pointer w-full block max-w-xs mx-auto bg-[#b03f0a] text-[#de9b26] font-bold text-2xl py-3 px-2 rounded-full transition-colors duration-200 ease-in-out hover:bg-[#de9b26] hover:text-[#b03f0a]"
+            className="cursor-pointer w-full block max-w-xs mx-auto bg-[#b03f0a] text-[#FFDC61] font-bold text-2xl py-3 px-2 rounded-full transition-colors duration-200 ease-in-out hover:bg-[#de9b26] hover:text-[#b03f0a]"
           >
             Submit Bid
           </button>
@@ -479,13 +512,13 @@ export default function Home() {
                       key={i}
                       className="flex justify-between items-center bg-black/50 p-4 rounded-lg"
                     >
-                      <div className="flex-1">{formatWallet(b.bidder)}</div>
-                      <div className="flex flex-col items-end space-y-1">
+                      <div className="flex-1 text-xs md:text-base">{formatWallet(b.bidder)}</div>
+                      <div className="flex flex-col items-end space-y-1 text-xs md:text-base">
                         <span>{Number(b.amount) / 10 ** 6} USDC</span>
                         <a
                           href={b.urlString}
                           target="_blank"
-                          className="underline truncate max-w-xs text-xs"
+                          className="underline truncate max-w-xs text-[8px] md:text-xs"
                         >
                           {b.urlString}
                         </a>
