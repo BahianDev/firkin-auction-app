@@ -481,7 +481,7 @@ export default function Home() {
           </button>
         </form>
         <footer className="w-full flex gap-5 mt-5 items-center justify-center">
-          <Link href={"/"}>
+          <Link href={"https://x.com/whatthefirkin"}>
             <img src={"/x.svg"} className="w-15 h-15" />
           </Link>
           <Link
