@@ -25,7 +25,6 @@ import { AUCTION_CONTRACT_ABI } from "./abis/Auction";
 import MicrolinkPreview from "@/components/MicrolinkPreview";
 import { IoCloseSharp, IoChevronBack, IoChevronForward } from "react-icons/io5";
 
-
 type Bid = {
   bidder: string;
   amount: bigint;
@@ -358,6 +357,18 @@ export default function Home() {
   const nextAuction = () =>
     setCurrentAuctionId((id) => Math.min(maxAuctionId, id + 1));
 
+  const minBidRaw =
+    highestBid > 0
+      ? (highestBid + (highestBid * minBidIncrement) / 100) / 10 ** 6
+      : reservePrice / 10 ** 6;
+
+  function ceilTwoDecimals(num: number): number {
+    return Math.ceil(num * 100) / 100;
+  }
+
+  // arredonda pra cima duas casas
+  const minBid = ceilTwoDecimals(minBidRaw);
+
   return (
     <div className="bg-[url('/bg2.png')] md:bg-[url('/bg2wide.png')] bg-cover bg-no-repeat bg-center min-h-screen py-5">
       <nav className="flex w-full justify-between items-center p-4">
@@ -450,24 +461,13 @@ export default function Home() {
         <form onSubmit={handleSubmit} className="space-y-4 mt-5">
           <input
             type="number"
-            placeholder={
-              highestBid > 0
-                ? `Min bid: ${
-                    (highestBid + (highestBid * minBidIncrement) / 100) /
-                    10 ** 6
-                  } USDC`
-                : `Min bid: ${reservePrice / 10 ** 6} USDC`
-            }
+            placeholder={`Min bid: ${minBid.toFixed(2)} USDC`}
             value={bidAmount}
             onChange={(e) => setBidAmount(e.target.value)}
             className="w-full block border-2 border-[#BA700A] bg-[#FFDC61] text-[#2C1100] placeholder-[#2C1100] font-bold py-3 px-2 rounded-full"
             required
-            min={
-              highestBid > 0
-                ? (highestBid + (highestBid * minBidIncrement) / 100) / 10 ** 6
-                : reservePrice / 10 ** 6
-            }
-            step="0.000001"
+            min={minBid}
+            step="0.01"
           />
           <input
             type="url"
@@ -512,7 +512,9 @@ export default function Home() {
                       key={i}
                       className="flex justify-between items-center bg-black/50 p-4 rounded-lg"
                     >
-                      <div className="flex-1 text-xs md:text-base">{formatWallet(b.bidder)}</div>
+                      <div className="flex-1 text-xs md:text-base">
+                        {formatWallet(b.bidder)}
+                      </div>
                       <div className="flex flex-col items-end space-y-1 text-xs md:text-base">
                         <span>{Number(b.amount) / 10 ** 6} USDC</span>
                         <a
