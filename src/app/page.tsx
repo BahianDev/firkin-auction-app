@@ -438,7 +438,7 @@ export default function Home() {
           />
           <input
             type="url"
-            placeholder="Your URL"
+            placeholder="https://example.com/your-page"
             value={url}
             onChange={(e) => setUrl(e.target.value)}
             className="w-full block border-2 border-[#BA700A] bg-[#D38D17] text-[#2C1100] placeholder-[#2C1100] font-bold py-3 px-2 rounded-full"
