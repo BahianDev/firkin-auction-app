@@ -425,7 +425,6 @@ export default function Home() {
           <div className="relative h-52 w-50">
             {currentUrl && (
               <div className=" flex items-center justify-center border-8 border-[#F9D843] rounded-lg mt-5">
-                {/* <QRCode bgColor="#F9D843" value={currentUrl} size={110} /> */}
                 <MicrolinkPreview url={currentUrl} />
               </div>
             )}
@@ -481,6 +480,19 @@ export default function Home() {
             Submit Bid
           </button>
         </form>
+        <footer className="w-full flex gap-5 mt-5 items-center justify-center">
+          <Link href={"/"}>
+            <img src={"/x.svg"} className="w-15 h-15" />
+          </Link>
+          <Link
+            href={
+              "https://dexscreener.com/base/0x4a66b258c6816eac87d87de9921037d298c44070"
+            }
+            target="_blank"
+          >
+            <img src={"/dexscreener.svg"} className="w-15 h-15" />
+          </Link>
+        </footer>
       </main>
 
       {showModal && (
