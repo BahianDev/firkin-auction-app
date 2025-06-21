@@ -377,6 +377,9 @@ export default function Home() {
       </nav>
 
       <main className="mx-auto px-4  max-w-md">
+        <div className="flex items-center justify-center space-x-4 mb-4">
+          <span className="text-2xl font-bold text-[#FFDC61] ">Auction</span>
+        </div>
         <div className="flex items-center justify-between space-x-4 mb-4">
           <button onClick={prevAuction} disabled={currentAuctionId <= 1}>
             <IoChevronBack
@@ -420,12 +423,6 @@ export default function Home() {
 
           {/* QR Frame com QRCode dinâmico */}
           <div className="relative h-52 w-50">
-            {/* <Image
-              src="/qrFrame.png"
-              fill
-              alt="QR Frame"
-              className="object-contain"
-            /> */}
             {currentUrl && (
               <div className=" flex items-center justify-center border-8 border-[#F9D843] rounded-lg mt-5">
                 {/* <QRCode bgColor="#F9D843" value={currentUrl} size={110} /> */}
