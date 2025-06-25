@@ -115,10 +115,18 @@ export default function Home() {
   });
 
   useEffect(() => {
+    const fetchHighestBidder = async () => {
+      const ens = await getName({
+        address: String(getAuctionHighestBidder.data) as `0x${string}`,
+        chain: base,
+      });
+      setHighestBidder(ens?.toString() || String(getAuctionHighestBidder.data));
+    };
+
     if (getAuctionHighestBidder.data !== undefined) {
-      setHighestBidder(String(getAuctionHighestBidder.data));
+      fetchHighestBidder();
     }
-  }, [getAuctionHighestBidder.data]);
+  }, [getAuctionHighestBidder.data, getName]);
 
   const getAuctionEndTime = useReadContract({
     address: contractAddress,
