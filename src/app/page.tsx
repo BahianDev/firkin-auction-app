@@ -120,7 +120,7 @@ export default function Home() {
         address: String(getAuctionHighestBidder.data) as `0x${string}`,
         chain: base,
       });
-      setHighestBidder(ens?.toString() || String(getAuctionHighestBidder.data));
+      setHighestBidder(ens?.toString() || formatWallet(String(getAuctionHighestBidder.data)));
     };
 
     if (getAuctionHighestBidder.data !== undefined) {
@@ -440,7 +440,7 @@ export default function Home() {
         </div>
 
         <span className=" inset-0 flex items-center justify-center text-[#FFDC61] font-bold mt-5">
-          Highest Bidder: {formatWallet(highestBidder)}
+          Highest Bidder: {highestBidder}
         </span>
 
         <div className="flex">
