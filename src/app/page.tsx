@@ -71,13 +71,13 @@ export default function Home() {
 
   const { address } = useAccount();
 
-  const contractAddress = "0x661345A45b18CdC32FfB5b67F3A397d18D5f34FC";
+  const contractAddress = "0x30Aff0eeD588E2842d47583Bd4bE2bb55f58cED8";
   const TOKEN_CONTRACT_ADDRESS = "0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913";
 
   const { writeContractAsync } = useWriteContract();
 
   const { data: auctionTokenCount } = useReadContract({
-    address: "0x661345A45b18CdC32FfB5b67F3A397d18D5f34FC",
+    address: contractAddress,
     abi: AUCTION_CONTRACT_ABI,
     functionName: "auctionTokenId",
     query: { initialData: 0 },
