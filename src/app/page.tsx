@@ -33,6 +33,17 @@ type Bid = {
   name: string;
 };
 
+type AuctionInfo = {
+  tokenId: number;
+  startTime: number;
+  endTime: number;
+  settled: boolean;
+  bidderName: string;
+  highestBidder: string;
+  highestBid: number;
+  urlString: string;
+};
+
 export default function Home() {
   const reservePrice = 1000000;
 
@@ -45,12 +56,19 @@ export default function Home() {
   const [maxAuctionId, setMaxAuctionId] = useState<number>(0);
 
   const [url, setUrl] = useState("");
-  const [currentUrl, setCurrentUrl] = useState("");
   const [bidAmount, setBidAmount] = useState("");
-  const [name, setName] = useState("");
   const [timeLeft, setTimeLeft] = useState("");
-  const [highestBid, setHighestBid] = useState(0);
-  const [highestBidder, setHighestBidder] = useState("");
+
+  const [auctionInfo, setAuctionInfo] = useState<AuctionInfo>({
+    bidderName: "",
+    endTime: 0,
+    highestBid: 0,
+    highestBidder: "",
+    settled: false,
+    startTime: 0,
+    tokenId: 0,
+    urlString: "",
+  });
 
   const [showModal, setShowModal] = useState(false);
 
@@ -90,64 +108,35 @@ export default function Home() {
     }
   }, [auctionTokenCount]);
 
-  const getAuctionHighestBid = useReadContract({
+  const getAuctionInfo = useReadContract({
     address: contractAddress,
     abi: AUCTION_CONTRACT_ABI,
-    functionName: "auctionHighestBid",
-    query: {
-      refetchInterval: 6000,
-    },
+    functionName: "auctions",
+    args: [currentAuctionId!],
   });
 
   useEffect(() => {
-    if (getAuctionHighestBid.data !== undefined) {
-      setHighestBid(Number(getAuctionHighestBid.data));
+    if (getAuctionInfo.data) {
+      const arr = getAuctionInfo.data as any[];
+      const parsed = {
+        tokenId: Number(arr[0]),
+        startTime: Number(arr[1]),
+        endTime: Number(arr[2]),
+        settled: Boolean(arr[3]),
+        bidderName: String(arr[4]),
+        highestBidder: String(arr[5]),
+        highestBid: Number(arr[6]),
+        urlString: String(arr[7]),
+      };
+      setAuctionInfo(parsed);
     }
-  }, [getAuctionHighestBid.data]);
-
-  const getAuctionHighestBidder = useReadContract({
-    address: contractAddress,
-    abi: AUCTION_CONTRACT_ABI,
-    functionName: "auctionHighestBidder",
-    query: {
-      refetchInterval: 6000,
-    },
-  });
-
-  useEffect(() => {
-    const fetchHighestBidder = async () => {
-      const ens = await getName({
-        address: String(getAuctionHighestBidder.data) as `0x${string}`,
-        chain: base,
-      });
-      setHighestBidder(ens?.toString() || formatWallet(String(getAuctionHighestBidder.data)));
-    };
-
-    if (getAuctionHighestBidder.data !== undefined) {
-      fetchHighestBidder();
-    }
-  }, [getAuctionHighestBidder.data, getName]);
+  }, [getAuctionInfo.data]);
 
   const getAuctionEndTime = useReadContract({
     address: contractAddress,
     abi: AUCTION_CONTRACT_ABI,
     functionName: "auctionEndTime",
   });
-
-  const getCurrentQrUrl: any = useReadContract({
-    address: contractAddress,
-    abi: AUCTION_CONTRACT_ABI,
-    functionName: "auctionQrMetadata",
-    query: {
-      refetchInterval: 6000,
-    },
-  });
-
-  useEffect(() => {
-    if (getCurrentQrUrl.data !== undefined) {
-      setCurrentUrl(String(getCurrentQrUrl.data[1]));
-    }
-  }, [getCurrentQrUrl.data]);
 
   useEffect(() => {
     const fetchAuctionData = async () => {
@@ -167,25 +156,6 @@ export default function Home() {
 
     return () => clearInterval(interval);
   }, []);
-
-  useEffect(() => {
-    const fetchEns = async () => {
-      try {
-        if (!address) return;
-        const ens = await getName({
-          address: address as `0x${string}`,
-          chain: base,
-        });
-        setName(ens?.toString() ?? address);
-      } catch (error) {
-        console.error("Error fetching ENS name:", error);
-      }
-    };
-
-    if (address) {
-      fetchEns();
-    }
-  }, [address, getName]);
 
   const getAllBids = useReadContract({
     address: contractAddress,
@@ -251,8 +221,6 @@ export default function Home() {
         functionName: "allowance",
       });
 
-      console.log(Number(allowance) / 10 ** 6, numericBid);
-
       if (Number(allowance) / 10 ** 6 < numericBid) {
         toast.loading("Sending...");
 
@@ -262,8 +230,6 @@ export default function Home() {
           args: [address],
           functionName: "balanceOf",
         });
-
-        console.log(balanceOf);
 
         const data = await writeContractAsync({
           address: TOKEN_CONTRACT_ADDRESS,
@@ -289,8 +255,10 @@ export default function Home() {
       // Converter para base 6 (USDC tem 6 decimais)
       const bidAmountInBase6 = Math.floor(numericBid * 10 ** 6);
 
+      if (!auctionInfo) return;
+
       // Se não há lance anterior, verificar se atende ao preço de reserva
-      if (highestBid === 0 && bidAmountInBase6 < reservePrice) {
+      if (auctionInfo.highestBid === 0 && bidAmountInBase6 < reservePrice) {
         toast.error(
           `Bid must be at least ${reservePrice / 10 ** 6} USDC (min bid)`
         );
@@ -298,8 +266,10 @@ export default function Home() {
       }
 
       // Se há lance anterior, verificar incremento mínimo
-      if (highestBid > 0) {
-        const minBid = highestBid + (highestBid * minBidIncrement) / 100;
+      if (auctionInfo.highestBid > 0) {
+        const minBid =
+          auctionInfo.highestBid +
+          (auctionInfo.highestBid * minBidIncrement) / 100;
         if (bidAmountInBase6 < minBid) {
           toast.error(
             `Bid must be at least ${
@@ -310,27 +280,39 @@ export default function Home() {
         }
       }
 
-      // Chamar a função do contrato com o valor em base 6
+      const ensName = await getName({
+        address: address as `0x${string}`,
+        chain: base,
+      });
+
+      const name = ensName || address
+
       const hash = await writeContractAsync({
         address: contractAddress,
         abi: AUCTION_CONTRACT_ABI,
         functionName: "createBid",
-        args: [currentAuctionId, url, name, bidAmountInBase6], // Valor convertido para base 6
+        args: [currentAuctionId, url, name, bidAmountInBase6], 
       });
 
-      // Esperar pela confirmação da transação
       const receipt = await waitForTransactionReceipt(config, { hash });
       if (receipt.status === "success") {
         toast.success("Bid placed successfully!");
-        // Atualizar os dados após o lance
-        const bid = await getAuctionHighestBid.refetch();
-        if (bid.data) setHighestBid(Number(bid.data));
-        const bidder: any = await getAuctionHighestBidder.refetch();
-        if (bidder.data) setHighestBidder(bidder.data);
-        const qrData: any = await getCurrentQrUrl.refetch();
-        if (qrData.data) setCurrentUrl(qrData.data[1]);
+        const auction: any = await getAuctionInfo.refetch();
+
+        const parsed = {
+          tokenId: Number(auction[0]),
+          startTime: Number(auction[1]),
+          endTime: Number(auction[2]),
+          settled: Boolean(auction[3]),
+          bidderName: String(auction[4]),
+          highestBidder: String(auction[5]),
+          highestBid: Number(auction[6]),
+          urlString: String(auction[7]),
+        };
+
+        setAuctionInfo(parsed);
+
         const allBids: any = await getAllBids.refetch();
-        console.log(allBids);
         if (allBids.data)
           setBids(
             allBids.data.map((b: any) => ({
@@ -354,7 +336,7 @@ export default function Home() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!url || !bidAmount || !name) {
+    if (!url || !bidAmount) {
       alert("Please fill all fields");
       return;
     }
@@ -366,8 +348,10 @@ export default function Home() {
     setCurrentAuctionId((id) => Math.min(maxAuctionId, id + 1));
 
   const minBidRaw =
-    highestBid > 0
-      ? (highestBid + (highestBid * minBidIncrement) / 100) / 10 ** 6
+    auctionInfo && auctionInfo.highestBid > 0
+      ? (auctionInfo.highestBid +
+          (auctionInfo.highestBid * minBidIncrement) / 100) /
+        10 ** 6
       : reservePrice / 10 ** 6;
 
   function ceilTwoDecimals(num: number): number {
@@ -424,34 +408,36 @@ export default function Home() {
           <div className="relative h-44 w-44">
             <Image src="/coin.png" fill alt="coin" className="object-contain" />
             <div className="absolute inset-0 flex flex-col items-center justify-center text-[#FFDC61] font-bold">
-              <span className="text-3xl">{highestBid / 1000000 || 0}</span>
+              <span className="text-3xl">
+                {auctionInfo?.highestBid / 1000000 || 0}
+              </span>
               <span className="text-xl">USDC</span>
             </div>
           </div>
 
           {/* QR Frame com QRCode dinâmico */}
           <div className="relative h-52 w-50">
-            {currentUrl && (
+            {auctionInfo?.urlString && (
               <div className=" flex items-center justify-center border-8 border-[#F9D843] rounded-lg mt-5">
-                <MicrolinkPreview url={currentUrl} />
+                <MicrolinkPreview url={auctionInfo?.urlString} />
               </div>
             )}
           </div>
         </div>
 
         <span className=" inset-0 flex items-center justify-center text-[#FFDC61] font-bold mt-5">
-          Highest Bidder: {highestBidder}
+          Highest Bidder: {auctionInfo?.bidderName}
         </span>
 
         <div className="flex">
           {/* Exibição dinâmica da URL */}
           <Link
-            href={currentUrl}
+            href={auctionInfo?.urlString}
             target="_blank"
             className="cursor-pointer flex items-center justify-center gap-5 mt-10 w-full max-w-xs mx-auto border-2 border-[#BA700A] bg-[#FFDC61] text-[#2C1100] font-bold py-3 px-2 rounded-full text-center truncate"
           >
-            {currentUrl || "No active URL"}
-            {currentUrl && <RiExternalLinkLine size={25} />}
+            {auctionInfo?.urlString || "No active URL"}
+            {auctionInfo?.urlString && <RiExternalLinkLine size={25} />}
           </Link>
           <button
             onClick={() => setShowModal(!showModal)}
